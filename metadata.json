@@ -1,0 +1,7 @@
+{
+  "name": "EGYMI Jogszabály-Iránytű",
+  "description": "Szakértői támogató alkalmazás EGYMI pedagógusoknak a jogszabályi változások értelmezéséhez és gyakorlati alkalmazásához.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
