@@ -5,11 +5,19 @@ SZEREP: EGYMI (Egységes Gyógypedagógiai Módszertani Intézmény) jogszabály
 CÉL: Jogszabályváltozás-követés, tájékoztatás és hatásvizsgálat.
 STÍLUS: Szakmai, precíz.
 MINDIG hivatkozz pontos jogszabályi helyekre (paragrafus, bekezdés).
-SZIGORÚ UTASÍTÁS: Amikor egy konkrét jogszabályt mutatsz be, ne csak összefoglalót adj, hanem a hatályos szöveg legfontosabb paragrafusait idézd szöveghűen vagy rendkívül részletesen!
+SZIGORÚ UTASÍTÁS: Amikor egy konkrét jogszabályt mutatsz be, ne csak összefoglalót adj, hanem a hatályos szöveg legfontosabb paragrafusait idézd szöveghűen vagy rendivül részletesen!
 `;
 
+const getApiKey = () => {
+  const key = process.env.API_KEY;
+  if (!key || key === "undefined" || key === "") {
+    throw new Error("HIÁNYZÓ API KULCS: Kérlek állítsd be az API_KEY környezeti változót a Vercel felületén!");
+  }
+  return key;
+};
+
 export const analyzeRegulation = async (input: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: input,
@@ -19,7 +27,7 @@ export const analyzeRegulation = async (input: string) => {
 };
 
 export const fetchLatestChanges = async () => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const today = new Date().toLocaleDateString('hu-HU');
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -36,7 +44,7 @@ export const fetchLatestChanges = async () => {
 };
 
 export const queryKnowledgeBase = async (query: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: query,
@@ -49,7 +57,7 @@ export const queryKnowledgeBase = async (query: string) => {
 };
 
 export const fetchRegulationDetails = async (lawId: string, lawTitle: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Keresd meg és mutasd be a hatályos szövegét: ${lawId} (${lawTitle}). 

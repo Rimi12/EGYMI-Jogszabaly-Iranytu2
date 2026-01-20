@@ -47,8 +47,8 @@ const App: React.FC = () => {
       const res = await fetchRegulationDetails(law.id, law.title);
       setLawDetail(res);
       setStatus(AnalysisStatus.SUCCESS);
-    } catch (e) { 
-      setError("Az AI betöltés sikertelen, de a külső linkek működnek!");
+    } catch (e: any) { 
+      setError(e.message || "Az AI betöltés sikertelen!");
       setStatus(AnalysisStatus.ERROR); 
     }
   };
@@ -65,19 +65,26 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 selection:bg-indigo-100">
       <header className="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl cursor-pointer" onClick={() => {setActiveTab('laws'); setSelectedLaw(null);}}>
+          <div className="flex items-center gap-2 font-bold text-xl cursor-pointer" onClick={() => {setActiveTab('laws'); setSelectedLaw(null); setError(null);}}>
             <Scale /> <span>EGYMI Iránytű</span>
           </div>
           <nav className="hidden md:flex gap-2">
-            <button onClick={() => setActiveTab('analyzer')} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='analyzer'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Elemző</button>
-            <button onClick={() => {setActiveTab('tracker'); setStatus(AnalysisStatus.LOADING); fetchLatestChanges().then(data => { setTrackerData(data); setStatus(AnalysisStatus.SUCCESS); });}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='tracker'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Változások</button>
-            <button onClick={() => setActiveTab('knowledge')} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='knowledge'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Tudástár</button>
-            <button onClick={() => {setActiveTab('laws'); setSelectedLaw(null);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='laws'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Jogszabályok</button>
+            <button onClick={() => {setActiveTab('analyzer'); setError(null);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='analyzer'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Elemző</button>
+            <button onClick={() => {setActiveTab('tracker'); setStatus(AnalysisStatus.LOADING); setError(null); fetchLatestChanges().then(data => { setTrackerData(data); setStatus(AnalysisStatus.SUCCESS); }).catch(e => { setError(e.message); setStatus(AnalysisStatus.ERROR); });}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='tracker'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Változások</button>
+            <button onClick={() => {setActiveTab('knowledge'); setError(null);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='knowledge'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Tudástár</button>
+            <button onClick={() => {setActiveTab('laws'); setSelectedLaw(null); setError(null);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='laws'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Jogszabályok</button>
           </nav>
         </div>
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 flex items-center gap-3 rounded-r-xl animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="shrink-0" />
+            <p className="font-medium">{error}</p>
+          </div>
+        )}
+
         {activeTab === 'laws' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
             {!selectedLaw ? coreRegulations.map(law => (
@@ -93,7 +100,7 @@ const App: React.FC = () => {
               </button>
             )) : (
               <div className="col-span-full space-y-6">
-                <button onClick={()=>{setSelectedLaw(null); setLawDetail(null);}} className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-bold transition-colors">
+                <button onClick={()=>{setSelectedLaw(null); setLawDetail(null); setError(null);}} className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-bold transition-colors">
                   <ArrowLeft size={18}/> VISSZA A LISTÁHOZ
                 </button>
                 
@@ -157,7 +164,7 @@ const App: React.FC = () => {
                 <RefreshCw className="animate-spin text-indigo-500" size={48}/>
                 <p className="text-slate-500 font-medium text-lg">Friss 2026-os közlönyadatok lekérése...</p>
               </div>
-            ) : trackerData && (
+            ) : trackerData && status === AnalysisStatus.SUCCESS && (
               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm whitespace-pre-wrap leading-relaxed animate-in fade-in text-slate-700 text-lg">
                 {trackerData.text}
               </div>
@@ -178,9 +185,15 @@ const App: React.FC = () => {
                 <button 
                   onClick={async () => {
                     setStatus(AnalysisStatus.LOADING);
-                    const res = await analyzeRegulation(input);
-                    setResult(res);
-                    setStatus(AnalysisStatus.SUCCESS);
+                    setError(null);
+                    try {
+                      const res = await analyzeRegulation(input);
+                      setResult(res);
+                      setStatus(AnalysisStatus.SUCCESS);
+                    } catch (e: any) {
+                      setError(e.message);
+                      setStatus(AnalysisStatus.ERROR);
+                    }
                   }}
                   disabled={status === AnalysisStatus.LOADING || !input.trim()}
                   className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-xl font-bold w-full md:w-auto flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
@@ -206,17 +219,29 @@ const App: React.FC = () => {
                 onChange={e=>setKnowledgeInput(e.target.value)} 
                 onKeyDown={e=>e.key==='Enter' && (async () => {
                   setStatus(AnalysisStatus.LOADING);
-                  const res = await queryKnowledgeBase(knowledgeInput);
-                  setKnowledgeResult(res);
-                  setStatus(AnalysisStatus.SUCCESS);
+                  setError(null);
+                  try {
+                    const res = await queryKnowledgeBase(knowledgeInput);
+                    setKnowledgeResult(res);
+                    setStatus(AnalysisStatus.SUCCESS);
+                  } catch (e: any) {
+                    setError(e.message);
+                    setStatus(AnalysisStatus.ERROR);
+                  }
                 })()} 
                />
                <button 
                 onClick={async () => {
                   setStatus(AnalysisStatus.LOADING);
-                  const res = await queryKnowledgeBase(knowledgeInput);
-                  setKnowledgeResult(res);
-                  setStatus(AnalysisStatus.SUCCESS);
+                  setError(null);
+                  try {
+                    const res = await queryKnowledgeBase(knowledgeInput);
+                    setKnowledgeResult(res);
+                    setStatus(AnalysisStatus.SUCCESS);
+                  } catch (e: any) {
+                    setError(e.message);
+                    setStatus(AnalysisStatus.ERROR);
+                  }
                 }} 
                 className="absolute right-4 top-4 bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg"
                >
@@ -225,7 +250,7 @@ const App: React.FC = () => {
              </div>
              {status === AnalysisStatus.LOADING ? (
                 <div className="flex justify-center py-12"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>
-             ) : knowledgeResult && (
+             ) : knowledgeResult && status === AnalysisStatus.SUCCESS && (
                <div className="bg-white p-8 rounded-2xl border-l-8 border-indigo-500 shadow-xl animate-in zoom-in-95 text-slate-800 text-lg">
                  <div className="whitespace-pre-wrap">{knowledgeResult}</div>
                </div>
