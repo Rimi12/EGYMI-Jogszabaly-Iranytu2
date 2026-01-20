@@ -23,10 +23,10 @@ export const fetchLatestChanges = async () => {
   const today = new Date().toLocaleDateString('hu-HU');
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Melyek a legfrissebb (2024-2025) köznevelési, SNI és EGYMI releváns jogszabályváltozások Magyarországon? Keress rá az njt.hu-n.`,
+    contents: `Melyek a legfrissebb (2024, 2025 és 2026-os) köznevelési, SNI és EGYMI releváns jogszabályváltozások Magyarországon? Keress rá az njt.hu-n és a Magyar Közlönyben a 2026-os frissítésekre is.`,
     config: {
       tools: [{ googleSearch: {} }],
-      systemInstruction: `Naprakész szakértő vagy. Mai dátum: ${today}.`,
+      systemInstruction: `Naprakész szakértő vagy. Jelenlegi dátum: ${today}. Különösen figyelj a 2026-ban életbe lépő vagy kihirdetett módosításokra.`,
     },
   });
   return {
@@ -41,7 +41,7 @@ export const queryKnowledgeBase = async (query: string) => {
     model: 'gemini-3-flash-preview',
     contents: query,
     config: {
-      systemInstruction: `EGYMI Tudástár asszisztens vagy. Adj pontos jogszabályi hivatkozásokat.`,
+      systemInstruction: `EGYMI Tudástár asszisztens vagy. Adj pontos jogszabályi hivatkozásokat. Vedd figyelembe a 2026-os aktuális állapotokat is.`,
       temperature: 0.1,
     },
   });
@@ -53,12 +53,12 @@ export const fetchRegulationDetails = async (lawId: string, lawTitle: string) =>
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Keresd meg és mutasd be a hatályos szövegét: ${lawId} (${lawTitle}). 
-    Használd a belső keresőt az njt.hu tartalmának eléréséhez. 
+    Használd a belső keresőt az njt.hu tartalmának eléréséhez a 2026-os állapot szerint. 
     KÖVETELMÉNY: A tartalom ne csak összefoglaló legyen! Sorold fel a legfontosabb paragrafusokat, különös tekintettel az EGYMI-re, az SNI ellátásra és a pedagógusok jogállására/bérére vonatkozó részekre. 
     A válaszod legyen hosszú, részletes és tartalamzzon szöveghű idézeteket a jogszabályból.`,
     config: {
       tools: [{ googleSearch: {} }],
-      thinkingConfig: { thinkingBudget: 15000 }, // Megemelt budget a mély kutatáshoz
+      thinkingConfig: { thinkingBudget: 15000 },
       systemInstruction: SYSTEM_INSTRUCTION,
     },
   });

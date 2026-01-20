@@ -59,7 +59,6 @@ const App: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // A legstabilabb megoldás a 404 elkerülésére: Célzott Google keresés az njt.hu domainen
   const getSafeNjtLink = (id: string) => `https://www.google.com/search?q=site:njt.hu+${encodeURIComponent(id)}`;
 
   return (
@@ -71,7 +70,7 @@ const App: React.FC = () => {
           </div>
           <nav className="hidden md:flex gap-2">
             <button onClick={() => setActiveTab('analyzer')} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='analyzer'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Elemző</button>
-            <button onClick={() => {setActiveTab('tracker'); fetchLatestChanges().then(setTrackerData);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='tracker'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Változások</button>
+            <button onClick={() => {setActiveTab('tracker'); setStatus(AnalysisStatus.LOADING); fetchLatestChanges().then(data => { setTrackerData(data); setStatus(AnalysisStatus.SUCCESS); });}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='tracker'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Változások</button>
             <button onClick={() => setActiveTab('knowledge')} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='knowledge'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Tudástár</button>
             <button onClick={() => {setActiveTab('laws'); setSelectedLaw(null);}} className={`px-4 py-2 rounded-lg transition-all ${activeTab==='laws'?'bg-white text-indigo-700 font-bold shadow-sm':'hover:bg-indigo-600'}`}>Jogszabályok</button>
           </nav>
@@ -133,7 +132,7 @@ const App: React.FC = () => {
                         <Loader2 className="animate-spin text-indigo-500" size={64} />
                         <div>
                           <p className="text-slate-900 text-xl font-bold">Adatbetöltés és szöveghű elemzés...</p>
-                          <p className="text-slate-500 mt-2 max-w-md mx-auto italic">A rendszer most olvassa be és rendszerezi a paragrafusokat a hiteles Nemzeti Jogszabálytárból...</p>
+                          <p className="text-slate-500 mt-2 max-w-md mx-auto italic">A rendszer most olvassa be és rendszerezi a paragrafusokat a hiteles Nemzeti Jogszabálytárból (2026-os állapot)...</p>
                         </div>
                       </div>
                     ) : lawDetail && (
@@ -150,7 +149,22 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Elemző, Tracker, Knowledge részek változatlanok vagy finomhangoltak a geminiService-en keresztül */}
+        {activeTab === 'tracker' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2 text-indigo-900"><Newspaper className="text-indigo-600"/> Monitor (2024-2026)</h2>
+            {status === AnalysisStatus.LOADING ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <RefreshCw className="animate-spin text-indigo-500" size={48}/>
+                <p className="text-slate-500 font-medium text-lg">Friss 2026-os közlönyadatok lekérése...</p>
+              </div>
+            ) : trackerData && (
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm whitespace-pre-wrap leading-relaxed animate-in fade-in text-slate-700 text-lg">
+                {trackerData.text}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'analyzer' && (
           <div className="space-y-6">
              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
@@ -175,20 +189,55 @@ const App: React.FC = () => {
                 </button>
              </div>
              {status === AnalysisStatus.SUCCESS && result && (
-               <div className="bg-white p-8 rounded-3xl border border-slate-200 whitespace-pre-wrap shadow-xl text-slate-700 leading-relaxed animate-in fade-in">
+               <div className="bg-white p-8 rounded-3xl border border-slate-200 whitespace-pre-wrap shadow-xl text-slate-700 leading-relaxed animate-in fade-in text-lg">
                  {result}
                </div>
              )}
           </div>
         )}
-        
-        {/* Egyéb tab-ok... */}
+
+        {activeTab === 'knowledge' && (
+          <div className="space-y-6">
+             <div className="relative">
+               <input 
+                className="w-full p-6 pl-8 border border-slate-200 rounded-2xl shadow-sm text-lg outline-none focus:ring-2 focus:ring-indigo-500 pr-20" 
+                placeholder="Pl.: Milyen pótlék jár az SNI koordinátornak 2026-ban?" 
+                value={knowledgeInput} 
+                onChange={e=>setKnowledgeInput(e.target.value)} 
+                onKeyDown={e=>e.key==='Enter' && (async () => {
+                  setStatus(AnalysisStatus.LOADING);
+                  const res = await queryKnowledgeBase(knowledgeInput);
+                  setKnowledgeResult(res);
+                  setStatus(AnalysisStatus.SUCCESS);
+                })()} 
+               />
+               <button 
+                onClick={async () => {
+                  setStatus(AnalysisStatus.LOADING);
+                  const res = await queryKnowledgeBase(knowledgeInput);
+                  setKnowledgeResult(res);
+                  setStatus(AnalysisStatus.SUCCESS);
+                }} 
+                className="absolute right-4 top-4 bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg"
+               >
+                 <Search size={28} />
+               </button>
+             </div>
+             {status === AnalysisStatus.LOADING ? (
+                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>
+             ) : knowledgeResult && (
+               <div className="bg-white p-8 rounded-2xl border-l-8 border-indigo-500 shadow-xl animate-in zoom-in-95 text-slate-800 text-lg">
+                 <div className="whitespace-pre-wrap">{knowledgeResult}</div>
+               </div>
+             )}
+          </div>
+        )}
       </main>
 
       <footer className="bg-slate-900 text-slate-500 py-12 text-center border-t border-slate-800 mt-auto">
         <div className="max-w-6xl mx-auto px-4">
-          <p className="font-bold text-slate-300 mb-2">EGYMI Jogszabály-Iránytű v3.3</p>
-          <p className="text-xs mb-4">A rendszer nem helyettesíti a jogi tanácsadást. Forrás: Nemzeti Jogszabálytár.</p>
+          <p className="font-bold text-slate-300 mb-2">EGYMI Jogszabály-Iránytű v3.4</p>
+          <p className="text-xs mb-4">© 2026 • A rendszer nem helyettesíti a jogi tanácsadást. Forrás: Nemzeti Jogszabálytár.</p>
           <div className="flex justify-center gap-6">
             <Scale size={20} className="text-slate-700"/>
             <Book size={20} className="text-slate-700"/>
